@@ -1,4 +1,4 @@
-import { Channel, ChannelTypePerson, WKSDK, Message, MessageContentType, ConversationAction, ChannelTypeGroup, ChannelInfo,CMDContent, MessageText  } from "wukongimjssdk";
+import { Channel, ChannelTypePerson, WKSDK, Message, MessageContentType, ConversationAction, ChannelTypeGroup, ChannelInfo, CMDContent, MessageText } from "wukongimjssdk";
 import React, { ElementType } from "react";
 import WKApp, { FriendApply, FriendApplyState, ThemeMode } from "./App";
 import ChannelQRCode from "./Components/ChannelQRCode";
@@ -332,15 +332,28 @@ export default class BaseModule implements IModule {
 
             return <IconClick img={true} icon={require("./assets/toolbars/func_file_normal.svg").default} onClick={(e) => {
                 console.log(e.target.files)
-                const file  = e.target.files[0]
-                const msg = new ImageContent(file, void 0, 100, 100)
-                msg.dealFile()
-                // msg.url = 'https://api.discosoul.com.cn/api/v1/users/010f7e6ea289466bbdc4215fd5573b44/avatar?v=0'
-                // msg.remoteUrl = 'https://api.discosoul.com.cn/api/v1/users/010f7e6ea289466bbdc4215fd5573b44/avatar?v=0'
-                // console.log(msg)
-                // WKSDK.shared().channelManager.getChannelInfo()
+                const file: File = e.target.files[0]
+                if (!file || !file.type.includes('image')) return
                 
-                WKSDK.shared().chatManager.send(msg, ctx.channel())
+                const url = URL.createObjectURL(file)
+                let img = new Image();              //手动创建一个Image对象
+                img.src = url;//创建Image的对象的url
+                let height = 100, width = 100;
+                img.onload = async function () {
+                    console.log('height:' + (this as HTMLImageElement).height + '----width:' + (this as HTMLImageElement).width)
+                    height = (this as HTMLImageElement).height
+                    width = (this as HTMLImageElement).width
+                    const msg = new ImageContent(file, void 0, width, height)
+                    msg.imgData = await file.text()
+                    msg.dealFile()
+                    
+                    WKSDK.shared().chatManager.send(msg, ctx.channel())
+                    fileToBase64(file, (res:string)=> {
+                        console.log(res);
+                        msg.imgData = res
+                    })
+                }
+
             }}></IconClick>
         })
 
@@ -1192,5 +1205,13 @@ export default class BaseModule implements IModule {
                 ],
             });
         })
+    }
+}
+
+function fileToBase64(file:File, callback:any) {
+    const fileReader = new FileReader()
+    fileReader.readAsDataURL(file)
+    fileReader.onload = function () {
+      callback(this.result)
     }
 }
